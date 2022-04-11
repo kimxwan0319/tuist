@@ -1,10 +1,17 @@
-import { ProjectQuery, ProjectDocument } from '@/graphql/types';
+import {
+  ProjectQuery,
+  ProjectDocument,
+  DeleteProjectMutation,
+  DeleteProjectDocument,
+  UpdateLastVisitedProjectMutation,
+  UpdateLastVisitedProjectDocument,
+} from '@/graphql/types';
 import { ApolloClient } from '@apollo/client';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { mapProject, Project } from '@/models/Project';
 
 export default class ProjectStore {
-  project: Project;
+  project: Project | undefined | null;
   client: ApolloClient<object>;
   constructor(client: ApolloClient<object>) {
     this.client = client;
@@ -19,11 +26,30 @@ export default class ProjectStore {
         accountName,
       },
     });
-    runInAction(() => {
-      if (data == null || data.project == null) {
-        return;
-      }
-      this.project = mapProject(data.project);
+    if (data == null || data.project == null) {
+      return;
+    }
+    this.project = mapProject(data.project);
+    await this.client.mutate<UpdateLastVisitedProjectMutation>({
+      mutation: UpdateLastVisitedProjectDocument,
+      variables: {
+        input: { id: this.project.id },
+      },
     });
+  }
+
+  async deleteProject() {
+    if (this.project === undefined || this.project === null) {
+      return;
+    }
+    await this.client.mutate<DeleteProjectMutation>({
+      mutation: DeleteProjectDocument,
+      variables: {
+        input: {
+          id: this.project.id,
+        },
+      },
+    });
+    this.project = null;
   }
 }

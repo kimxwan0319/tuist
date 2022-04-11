@@ -81,7 +81,8 @@ const UserItem = ({
   user: User;
   isAdmin: boolean;
 }) => {
-  const { organizationStore } = useContext(HomeStoreContext);
+  const { organizationStore, userStore } =
+    useContext(HomeStoreContext);
   return (
     <div style={{ padding: '10px 100px 10px 20px' }}>
       <Stack alignment={'center'}>
@@ -92,7 +93,7 @@ const UserItem = ({
             <TextStyle variation="subdued">{user.email}</TextStyle>
           </Stack>
         </Stack.Item>
-        {isAdmin ? (
+        {isAdmin && user.id !== userStore.me?.id ? (
           <UserRolePopover user={user} />
         ) : (
           <TextStyle>
@@ -116,14 +117,8 @@ const UserItem = ({
 
 const OrganizationPage = observer(() => {
   const { accountName: organizationName } = useParams();
-  const { organizationStore, userStore } =
-    useContext(HomeStoreContext);
-  const isAdmin =
-    (userStore.me &&
-      organizationStore.admins
-        .map((admin) => admin.id)
-        .includes(userStore.me.id)) ??
-    false;
+  const homeStore = useContext(HomeStoreContext);
+  const { organizationStore, userStore } = homeStore;
   const [organizationPageStore] = useState(
     () => new OrganizationPageStore(organizationStore),
   );
@@ -176,7 +171,9 @@ const OrganizationPage = observer(() => {
           resourceName={{ singular: 'member', plural: 'members' }}
           items={organizationStore.members}
           renderItem={(item) => {
-            return <UserItem user={item} isAdmin={isAdmin} />;
+            return (
+              <UserItem user={item} isAdmin={homeStore.isAdmin} />
+            );
           }}
         />
       </Card>
@@ -201,7 +198,7 @@ const OrganizationPage = observer(() => {
                       </TextStyle>
                     </Stack.Item>
 
-                    {isAdmin && (
+                    {homeStore.isAdmin && (
                       <Stack>
                         <Button
                           onClick={() => {
